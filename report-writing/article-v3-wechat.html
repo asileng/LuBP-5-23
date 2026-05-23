@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>为什么通用AI搞不定BP辩论？聊聊我们做的这个东西</title>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue','Microsoft YaHei',sans-serif;line-height:1.75;color:#3f3f3f;letter-spacing:1px;margin:0;padding:0;background:#f5f5f5;">
+<div style="max-width:677px;margin:0 auto;background:#fff;padding:25px 20px;">
+
+<h1 style="color:#1a1a1a;font-size:22px;text-align:center;margin:0 0 12px;line-height:1.4;letter-spacing:0.5px;">为什么通用AI搞不定BP辩论？聊聊我们做的这个东西</h1>
+<p style="text-align:center;color:#888;font-size:13px;margin:0 0 30px;padding-bottom:20px;border-bottom:1px solid #eee;line-height:1.8;">12步论证挖掘、4种论点角色标注、交互式论证图谱<br>——一个NLP团队的BP辩论AI实验</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">上一篇文章，我测了10种AI辅助BP辩论的方案。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">结论是：AI能帮你做很多事，但它做不好一件事——它不懂辩论。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">今天聊聊，我们是怎么解决这个问题的。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">先说好，这个系统不是一步到位的。我们迭代了好几轮，踩了不少坑，核心技术已经跑通，还在持续优化。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 数据统计 -->
+<div style="display:flex;justify-content:center;gap:32px;margin:20px 0 30px;flex-wrap:wrap;">
+  <div style="text-align:center;">
+    <div style="font-size:28px;font-weight:800;background:linear-gradient(135deg,#6C5CE7,#00CEC9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">400+</div>
+    <div style="font-size:12px;color:#888;margin-top:2px;">年参赛人数</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:28px;font-weight:800;background:linear-gradient(135deg,#6C5CE7,#00CEC9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">40+步</div>
+    <div style="font-size:12px;color:#888;margin-top:2px;">思维链推理深度</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:28px;font-weight:800;background:linear-gradient(135deg,#6C5CE7,#00CEC9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">2017</div>
+    <div style="font-size:12px;color:#888;margin-top:2px;">合作伙伴成立年份</div>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">先说一个真实场景。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你打完一场BP辩论，用AI帮你复盘。AI告诉你："OG的论点逻辑清晰，OO的反驳不够有力。"</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">然后呢？</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你不知道OG的论点为什么"逻辑清晰"。你不知道OO的反驳哪里"不够有力"。你不知道评委在听什么。你不知道下次该怎么改。</p>
+
+<p style="margin:20px 0;font-size:16px;font-weight:bold;color:#1a1a1a;">AI给了你一个结论，但没给你路径。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这就是通用AI的问题。它能做总结，但不能做分析。它能告诉你"好不好"，但不能告诉你"为什么"和"怎么改"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们做的东西，就是解决这个问题。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">我们的方案：5层技术架构</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们不是在做一个"AI辩论助手"。我们在做一个"辩论论证分析系统"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">区别在哪？</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">通用AI是"黑盒"——你丢一段文字进去，它给你一个总结。你不知道它是怎么分析的，也不知道它的分析对不对。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们的系统是"白盒"——每一步分析都有明确的逻辑，你可以看到它是怎么从"辩手说了什么"推导出"辩手的论证结构是什么"的。</p>
+
+<!-- 5层架构可视化 -->
+<div style="background:#0A0A1A;border-radius:10px;padding:20px 18px;margin:20px 0;">
+  <div style="text-align:center;color:#00CEC9;font-size:14px;font-weight:bold;margin-bottom:16px;letter-spacing:2px;">5层技术架构</div>
+
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+    <div style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:white;">01</div>
+    <div style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:14px;font-weight:700;color:#E8E8F0;margin-bottom:2px;">系统调度层</div>
+      <div style="font-size:12px;color:#9B9BB0;">统一的任务调度与数据流转，协调各模块高效协作</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+    <div style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:white;">02</div>
+    <div style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:14px;font-weight:700;color:#E8E8F0;margin-bottom:2px;">语音识别（ASR）</div>
+      <div style="font-size:12px;color:#9B9BB0;">高精度自动语音识别，将辩论语音实时转化为结构化文本</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+    <div style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:white;">03</div>
+    <div style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:14px;font-weight:700;color:#E8E8F0;margin-bottom:2px;">思维链 Argument Mining</div>
+      <div style="font-size:12px;color:#9B9BB0;">深度思维链推理，自动提取论点、论据与论证逻辑，构建论证图谱</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+    <div style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:white;">04</div>
+    <div style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:14px;font-weight:700;color:#E8E8F0;margin-bottom:2px;">角色标注 Role-Tagging</div>
+      <div style="font-size:12px;color:#9B9BB0;">自动标注发言角色（正方一辩、反方二辩等），精准定位每位选手表现</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:14px;">
+    <div style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:white;">05</div>
+    <div style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:14px;font-weight:700;color:#E8E8F0;margin-bottom:2px;">Comparison 裁判报告</div>
+      <div style="font-size:12px;color:#9B9BB0;">对比双方论证强度、逻辑完整性，生成专业裁判视角分析报告</div>
+    </div>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">5层架构，从"听懂辩手说了什么"到"告诉你谁赢了、为什么赢"，每一层都针对BP辩论的特点做了优化。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这不是一个"通用AI套个壳"，这是一个"为BP辩论从零设计的系统"。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">我们怎么标注论点角色</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这是我们的核心创新之一。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">通用AI分析辩论的时候，会告诉你"这个论点很重要"。但它不会告诉你这个论点在论证链条里扮演什么角色。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们用4种角色来标注每个论点：</p>
+
+<!-- 4种角色可视化 -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0;">
+  <div style="background:#f0f7ff;border-left:3px solid #1565c0;border-radius:0 6px 6px 0;padding:12px 14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <svg width="20" height="20"><polygon points="10,2 18,10 10,18 2,10" fill="#1565c0"/></svg>
+      <span style="font-size:14px;font-weight:bold;color:#1565c0;">Position</span>
+    </div>
+    <div style="font-size:12px;color:#555;">辩手的总论点，整个论证的起点。比如"监狱应该私有化"。</div>
+  </div>
+  <div style="background:#f0f7ff;border-left:3px solid #4a90d9;border-radius:0 6px 6px 0;padding:12px 14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <svg width="20" height="20"><polygon points="10,2 18,10 10,18 2,10" fill="#4a90d9"/></svg>
+      <span style="font-size:14px;font-weight:bold;color:#4a90d9;">Claim</span>
+    </div>
+    <div style="font-size:12px;color:#555;">对世界如何变化的宏观判断。比如"私有化能提高效率"。</div>
+  </div>
+  <div style="background:#f0fff4;border-left:3px solid #2ecc71;border-radius:0 6px 6px 0;padding:12px 14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <svg width="20" height="20"><rect x="2" y="4" width="16" height="12" rx="3" fill="#2ecc71"/></svg>
+      <span style="font-size:14px;font-weight:bold;color:#2ecc71;">Mechanism</span>
+    </div>
+    <div style="font-size:12px;color:#555;">因果链条的中间环节，解释"为什么会这样"。比如"合同模式让政府可以设定标准"。</div>
+  </div>
+  <div style="background:#fff8f0;border-left:3px solid #e65100;border-radius:0 6px 6px 0;padding:12px 14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <svg width="20" height="20"><polygon points="10,2 18,6 18,14 10,18 2,14 2,6" fill="#e65100"/></svg>
+      <span style="font-size:14px;font-weight:bold;color:#e65100;">Impact</span>
+    </div>
+    <div style="font-size:12px;color:#555;">最终落脚点，包含利益相关者分析。比如"囚犯获得改造机会，重新融入社会"。</div>
+  </div>
+</div>
+
+<div style="text-align:center;margin:10px 0 20px;">
+  <svg viewBox="0 0 480 30" style="width:100%;max-width:420px;">
+    <defs>
+      <marker id="arr-r1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1565c0"/></marker>
+    </defs>
+    <rect x="10" y="5" width="90" height="20" rx="4" fill="#1565c0"/>
+    <text x="55" y="19" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Position</text>
+    <line x1="100" y1="15" x2="118" y2="15" stroke="#1565c0" stroke-width="2" marker-end="url(#arr-r1)"/>
+    <rect x="118" y="5" width="80" height="20" rx="4" fill="#4a90d9"/>
+    <text x="158" y="19" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Claim</text>
+    <line x1="198" y1="15" x2="216" y2="15" stroke="#4a90d9" stroke-width="2" marker-end="url(#arr-r1)"/>
+    <rect x="216" y="5" width="110" height="20" rx="10" fill="#2ecc71"/>
+    <text x="271" y="19" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Mechanism</text>
+    <line x1="326" y1="15" x2="344" y2="15" stroke="#2ecc71" stroke-width="2" marker-end="url(#arr-r1)"/>
+    <polygon points="380,5 410,15 380,25 350,15" fill="#e65100"/>
+    <text x="380" y="19" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Impact</text>
+  </svg>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这4种角色构成了一个完整的论证链条：Position → Claim → Mechanism → Impact。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你用通用AI分析一场辩论，它会告诉你"OG的论点是私有化能提高效率"。但它不会告诉你这个论点是怎么从Position推导到Impact的，也不会告诉你中间缺少了哪些环节。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们的系统能告诉你：这个论点的链条是完整的，还是断了的。如果断了，断在哪里。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">真实案例：OG1 论证图谱</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们用这个系统分析了"Should we privatize prisons"这场辩论。OG1的论证图谱有18个节点、18条边，其中4个是隐含假设。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">具体来说，OG1有两条主要论证链：</p>
+
+<!-- OG1 论证图谱 SVG -->
+<svg viewBox="0 0 750 420" style="width:100%;max-width:700px;display:block;margin:20px auto;font-family:-apple-system,sans-serif;">
+    <rect width="750" height="420" fill="#fafafa" rx="10"/>
+    <text x="375" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">OG1 论证图谱 — "Should we privatize prisons"</text>
+    <text x="375" y="50" text-anchor="middle" font-size="12" fill="#888">18个节点 · 18条边 · 4个隐含假设</text>
+
+    <!-- 论证链1：效率提升 -->
+    <text x="60" y="90" font-size="12" font-weight="bold" fill="#1565c0">论证链1：效率提升</text>
+    <rect x="30" y="105" width="130" height="45" rx="5" fill="#1565c0" opacity="0.9"/>
+    <text x="95" y="125" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Position</text>
+    <text x="95" y="140" text-anchor="middle" font-size="9" fill="white">监狱应该私有化</text>
+    <line x1="160" y1="127" x2="195" y2="127" stroke="#1565c0" stroke-width="2" marker-end="url(#ab)"/>
+    <rect x="195" y="105" width="130" height="45" rx="5" fill="#1565c0" opacity="0.9"/>
+    <text x="260" y="125" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Claim</text>
+    <text x="260" y="140" text-anchor="middle" font-size="9" fill="white">私有化能提高效率</text>
+    <line x1="325" y1="127" x2="360" y2="127" stroke="#1565c0" stroke-width="2" marker-end="url(#ab)"/>
+    <rect x="360" y="105" width="140" height="45" rx="20" fill="#43a047" opacity="0.9"/>
+    <text x="430" y="125" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Mechanism</text>
+    <text x="430" y="140" text-anchor="middle" font-size="9" fill="white">企业管理策略改善运营</text>
+    <line x1="500" y1="127" x2="535" y2="127" stroke="#43a047" stroke-width="2" marker-end="url(#ag)"/>
+    <polygon points="600,105 660,127 600,149 540,127" fill="#e65100" opacity="0.9"/>
+    <text x="600" y="125" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Impact</text>
+    <text x="600" y="140" text-anchor="middle" font-size="8" fill="white">囚犯获得改造机会</text>
+
+    <!-- 论证链2：合同保障 -->
+    <text x="60" y="200" font-size="12" font-weight="bold" fill="#7b1fa2">论证链2：合同保障</text>
+    <rect x="30" y="215" width="130" height="45" rx="5" fill="#1565c0" opacity="0.9"/>
+    <text x="95" y="235" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Position</text>
+    <text x="95" y="250" text-anchor="middle" font-size="9" fill="white">监狱应该私有化</text>
+    <line x1="160" y1="237" x2="195" y2="237" stroke="#7b1fa2" stroke-width="2" marker-end="url(#ap)"/>
+    <rect x="195" y="215" width="140" height="45" rx="5" fill="#7b1fa2" opacity="0.9"/>
+    <text x="265" y="235" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Claim</text>
+    <text x="265" y="250" text-anchor="middle" font-size="9" fill="white">合同模式确保标准</text>
+    <line x1="335" y1="237" x2="370" y2="237" stroke="#7b1fa2" stroke-width="2" marker-end="url(#ap)"/>
+    <rect x="370" y="215" width="150" height="45" rx="20" fill="#43a047" opacity="0.9"/>
+    <text x="445" y="235" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Mechanism</text>
+    <text x="445" y="250" text-anchor="middle" font-size="9" fill="white">政府设定标准并监督</text>
+    <line x1="520" y1="237" x2="545" y2="237" stroke="#43a047" stroke-width="2" marker-end="url(#ag)"/>
+    <polygon points="605,215 665,237 605,259 545,237" fill="#e65100" opacity="0.9"/>
+    <text x="605" y="235" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Impact</text>
+    <text x="605" y="250" text-anchor="middle" font-size="8" fill="white">社区安全得到保障</text>
+
+    <!-- 隐含假设 -->
+    <text x="60" y="305" font-size="12" font-weight="bold" fill="#d32f2f">隐含假设（半透明=未明确说出）</text>
+    <rect x="30" y="320" width="160" height="35" rx="5" fill="#1565c0" opacity="0.3" stroke="#1565c0" stroke-dasharray="4"/>
+    <text x="110" y="342" text-anchor="middle" font-size="9" fill="#1565c0">政府能有效执行合同</text>
+    <rect x="200" y="320" width="160" height="35" rx="5" fill="#1565c0" opacity="0.3" stroke="#1565c0" stroke-dasharray="4"/>
+    <text x="280" y="342" text-anchor="middle" font-size="9" fill="#1565c0">市场竞争推动质量提升</text>
+    <rect x="370" y="320" width="170" height="35" rx="5" fill="#1565c0" opacity="0.3" stroke="#1565c0" stroke-dasharray="4"/>
+    <text x="455" y="342" text-anchor="middle" font-size="9" fill="#1565c0">改造效果可在合同中衡量</text>
+    <rect x="550" y="320" width="170" height="35" rx="5" fill="#1565c0" opacity="0.3" stroke="#1565c0" stroke-dasharray="4"/>
+    <text x="635" y="342" text-anchor="middle" font-size="9" fill="#1565c0">私营运营商不会串谋</text>
+
+    <!-- 图例 -->
+    <rect x="30" y="375" width="690" height="35" fill="#f0f0f0" rx="5"/>
+    <text x="50" y="397" font-size="10" fill="#666">图例：</text>
+    <rect x="90" y="385" width="15" height="12" fill="#1565c0" rx="2"/> <text x="110" y="395" font-size="9" fill="#666">Position/Claim</text>
+    <rect x="190" y="385" width="15" height="12" fill="#43a047" rx="8"/> <text x="210" y="395" font-size="9" fill="#666">Mechanism</text>
+    <polygon points="295,385 305,391 295,397 285,391" fill="#e65100"/> <text x="310" y="395" font-size="9" fill="#666">Impact</text>
+    <rect x="370" y="385" width="15" height="12" fill="#1565c0" opacity="0.3" stroke="#1565c0" stroke-dasharray="3"/> <text x="390" y="395" font-size="9" fill="#666">隐含假设</text>
+    <line x1="470" y1="391" x2="500" y2="391" stroke="#999" stroke-width="1.5"/> <text x="505" y="395" font-size="9" fill="#666">实线=显性支撑</text>
+    <line x1="590" y1="391" x2="620" y2="391" stroke="#999" stroke-width="1.5" stroke-dasharray="4"/> <text x="625" y="395" font-size="9" fill="#666">虚线=隐性支撑</text>
+
+    <defs>
+        <marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1565c0"/></marker>
+        <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#43a047"/></marker>
+        <marker id="ap" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7b1fa2"/></marker>
+    </defs>
+</svg>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">系统还识别出4个隐含假设：政府能有效执行合同、市场竞争推动质量提升、改造效果可在合同中衡量、私营运营商之间不会串谋。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你看到没？这不是"AI觉得这个论点好"，这是"AI告诉你这个论点的结构是什么、哪里完整、哪里有漏洞"。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">我们怎么分析论证交互</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">BP辩论的特殊之处在于，你不是一个人在战斗。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">Opening和Closing之间有信息流动，OG和OO之间有攻防关系。一个好的复盘工具，不能只分析单个辩手，还得分析辩手之间的关系。</p>
+
+<!-- 四象限论证交互图 -->
+<div style="background:#0A0A1A;border-radius:10px;padding:18px;margin:20px 0;">
+  <div style="text-align:center;color:#e94560;font-size:14px;font-weight:bold;margin-bottom:14px;letter-spacing:1px;">论证交互分析 — 四象限布局</div>
+
+  <svg viewBox="0 0 500 320" style="width:100%;max-width:480px;display:block;margin:0 auto;">
+    <!-- 象限分割线 -->
+    <line x1="250" y1="30" x2="250" y2="300" stroke="#333" stroke-width="1.5"/>
+    <line x1="20" y1="165" x2="480" y2="165" stroke="#333" stroke-width="1.5"/>
+
+    <!-- 象限标签 -->
+    <text x="135" y="48" text-anchor="middle" font-size="11" fill="#2ecc71" font-weight="bold">OG — Opening Government</text>
+    <text x="365" y="48" text-anchor="middle" font-size="11" fill="#e67e22" font-weight="bold">OO — Opening Opposition</text>
+    <text x="135" y="185" text-anchor="middle" font-size="11" fill="#9b59b6" font-weight="bold">CG — Closing Government</text>
+    <text x="365" y="185" text-anchor="middle" font-size="11" fill="#e74c3c" font-weight="bold">CO — Closing Opposition</text>
+
+    <!-- OG 节点 -->
+    <polygon points="90,75 110,90 90,105 70,90" fill="#2ecc71"/>
+    <text x="90" y="93" text-anchor="middle" font-size="7" fill="white">效率</text>
+    <polygon points="170,75 190,90 170,105 150,90" fill="#2ecc71"/>
+    <text x="170" y="93" text-anchor="middle" font-size="7" fill="white">合同</text>
+    <rect x="120" y="115" width="40" height="14" rx="4" fill="#2ecc71" opacity="0.6"/>
+    <text x="140" y="125" text-anchor="middle" font-size="6" fill="white">机制层</text>
+
+    <!-- OO 节点 -->
+    <polygon points="320,75 340,90 320,105 300,90" fill="#e67e22"/>
+    <text x="320" y="93" text-anchor="middle" font-size="7" fill="white">利润</text>
+    <polygon points="400,75 420,90 400,105 380,90" fill="#e67e22"/>
+    <text x="400" y="93" text-anchor="middle" font-size="7" fill="white">问责</text>
+    <rect x="340" y="115" width="40" height="14" rx="4" fill="#e67e22" opacity="0.6"/>
+    <text x="360" y="125" text-anchor="middle" font-size="6" fill="white">机制层</text>
+
+    <!-- CG 节点 -->
+    <polygon points="90,215 110,230 90,245 70,230" fill="#9b59b6"/>
+    <text x="90" y="233" text-anchor="middle" font-size="7" fill="white">效率</text>
+    <polygon points="170,215 190,230 170,245 150,230" fill="#9b59b6"/>
+    <text x="170" y="233" text-anchor="middle" font-size="7" fill="white">问责</text>
+
+    <!-- CO 空 -->
+    <text x="365" y="233" text-anchor="middle" font-size="10" fill="#555">待标注</text>
+
+    <!-- 跨象限连线：Clash (黄色) -->
+    <line x1="110" y1="90" x2="300" y2="90" stroke="#f1c40f" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="205" y="82" text-anchor="middle" font-size="8" fill="#f1c40f">Clash</text>
+
+    <!-- 跨象限连线：Rebuttal (红色) -->
+    <line x1="320" y1="105" x2="110" y2="105" stroke="#e74c3c" stroke-width="1.5" marker-end="url(#arr-rb)"/>
+    <text x="215" y="143" text-anchor="middle" font-size="8" fill="#e74c3c">Rebuttal</text>
+
+    <!-- 跨象限连线：Extension (蓝色) -->
+    <line x1="90" y1="105" x2="90" y2="215" stroke="#3498db" stroke-width="1.5" stroke-dasharray="3"/>
+    <text x="55" y="165" text-anchor="middle" font-size="8" fill="#3498db">Extension</text>
+
+    <!-- 图例 -->
+    <rect x="30" y="275" width="440" height="30" fill="rgba(255,255,255,0.05)" rx="4"/>
+    <line x1="50" y1="290" x2="80" y2="290" stroke="#f1c40f" stroke-width="2"/>
+    <text x="85" y="293" font-size="8" fill="#aaa">Clash (矛盾)</text>
+    <line x1="170" y1="290" x2="200" y2="290" stroke="#e74c3c" stroke-width="2"/>
+    <text x="205" y="293" font-size="8" fill="#aaa">Rebuttal (反驳)</text>
+    <line x1="300" y1="290" x2="330" y2="290" stroke="#3498db" stroke-width="2" stroke-dasharray="3"/>
+    <text x="335" y="293" font-size="8" fill="#aaa">Extension (延伸)</text>
+
+    <defs>
+      <marker id="arr-rb" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e74c3c"/></marker>
+    </defs>
+  </svg>
+</div>
+
+<div style="background:#f0f7ff;border-left:3px solid #5b9bd5;border-radius:0 4px 4px 0;padding:14px 18px;margin:18px 0;">
+  <div style="font-size:16px;font-weight:bold;color:#2c5f8a;margin:0 0 10px;">论证交互分析</div>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">支撑关系：</strong>OG2的论点如何支撑OG1的论点？</p>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">攻击关系：</strong>OO的反驳如何削弱OG的论证？</p>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">超越关系：</strong>CG的extension如何超越OG的论点？</p>
+  <p style="font-size:14px;margin:0;"><strong style="color:#1a1a1a;">缺失关系：</strong>哪些论点应该被回应但没有被回应？</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你用通用AI分析一场辩论，它只能看到单个辩手的表现。你用我们的系统分析，你能看到整场比赛的动态。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">跟通用AI比，我们好在哪？</p>
+
+<div style="background:#fef5e7;border-left:3px solid #e67e22;padding:14px 18px;margin:18px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;">
+  <strong style="color:#1a1a1a;">通用AI（ChatGPT/DeepSeek/Kimi）：</strong>
+  <p style="font-size:14px;margin:6px 0 0;">你丢一段辩论转写进去，它会告诉你"OG的论点逻辑清晰，OO的反驳不够有力"。然后呢？你不知道为什么。你不知道怎么改。你不知道评委在听什么。</p>
+</div>
+
+<div style="background:#f0f7ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:18px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;">
+  <strong style="color:#1a1a1a;">我们的系统（DebateAI）：</strong>
+  <p style="font-size:14px;margin:6px 0 0;">你丢一段辩论转写进去，它会告诉你：</p>
+  <p style="font-size:14px;margin:4px 0;">1. OG有3条论证链，每条链的完整度是多少</p>
+  <p style="font-size:14px;margin:4px 0;">2. 哪些论点是隐含假设，没有被明确说出来</p>
+  <p style="font-size:14px;margin:4px 0;">3. OO的反驳攻击了OG的哪个环节，效果如何</p>
+  <p style="font-size:14px;margin:4px 0;">4. CG的extension超越了OG的哪些论点</p>
+  <p style="font-size:14px;margin:4px 0;">5. 从裁判视角看，哪队表现最好，为什么</p>
+  <p style="font-size:14px;margin:4px 0 0;">6. 如果你是OG方，具体应该怎么改进</p>
+</div>
+
+<p style="margin:20px 0;font-size:16px;font-weight:bold;color:#1a1a1a;">通用AI给你结论，我们给你路径。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我跟你说，我们用通用AI和我们的系统分析同一场辩论，结果差别很大。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">通用AI说："OG的论点逻辑清晰，论证有力。"</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们的系统说："OG有2条主要论证链。第一条完整（Position→Claim→Mechanism→Impact），第二条缺少Impact环节。隐含假设有4个，其中2个没有被明确回应。从裁判视角看，第一条论证链的说服力更强，因为Impact环节明确指出了利益相关者（囚犯、社区）。"</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你觉得哪个对辩手更有用？</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">通用AI给你一个模糊的结论，我们给你一个清晰的路径。你知道哪里完整、哪里有漏洞、怎么改。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">我们的壁垒</p>
+
+<div style="background:linear-gradient(135deg,#6c5ce7 0%,#a29bfe 100%);color:white;padding:16px 18px;border-radius:6px;margin:14px 0;">
+  <h3 style="margin:0 0 8px;color:white;font-size:15px;">壁垒1：学术基础</h3>
+  <p style="color:rgba(255,255,255,0.95);font-size:14px;margin:0;">我们的12步论证挖掘流水线基于ICLR 2026 Workshop论文《Logical Reasoning of Large Language Models》。这不是拍脑袋想出来的方法，是有学术研究支撑的。简单说，我们不是在猜"这个论点好不好"，而是用一套经过学术验证的框架去拆解论证结构。</p>
+</div>
+
+<div style="background:linear-gradient(135deg,#6c5ce7 0%,#a29bfe 100%);color:white;padding:16px 18px;border-radius:6px;margin:14px 0;">
+  <h3 style="margin:0 0 8px;color:white;font-size:15px;">壁垒2：专家模型训练</h3>
+  <p style="color:rgba(255,255,255,0.95);font-size:14px;margin:0;">我们用大量的BP辩论数据，对通用大模型进行了"专项培训"（技术上叫LoRA微调）。打个比方：通用AI像一个什么都懂但什么都不精的通才，我们的模型像一个专门研究辩论的专家。它"看过"几百场辩论，知道好的论证长什么样、差的论证差在哪。</p>
+</div>
+
+<div style="background:linear-gradient(135deg,#6c5ce7 0%,#a29bfe 100%);color:white;padding:16px 18px;border-radius:6px;margin:14px 0;">
+  <h3 style="margin:0 0 8px;color:white;font-size:15px;">壁垒3：工程化壁垒</h3>
+  <p style="color:rgba(255,255,255,0.95);font-size:14px;margin:0;">一场辩论8个辩手同时发言，你要在他们说完的瞬间就把论证图谱生成出来。这不是"调用一下API"就能做到的，需要自己搭一套能同时处理多人发言、实时出结果的系统。这个工程难度，就是我们的护城河。</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这三个壁垒加在一起，构成了我们的护城河。通用AI可以做总结，但做不了这种深度的结构化分析。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">我们是谁</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们是做AI-NLP-素质教育的团队。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">团队里有NLP方向的语言学博士、有执裁经验的BP辩论教练、有全栈AI工程能力的开发者。我们不是在做"通用AI套壳"，我们在做"为BP辩论从零设计的论证分析系统"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们的合作伙伴是上海辅禾教育，成立于2017年，是上海最大的体制内高中生模拟联合国提供商。他们懂教育，我们懂技术。</p>
+
+<p style="margin:20px 0;font-size:16px;font-weight:bold;color:#1a1a1a;">AI负责分析，人负责指导。AI找到问题，人解决问题。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">发展路线</p>
+
+<!-- Roadmap 可视化 -->
+<div style="position:relative;padding:10px 0 10px 30px;margin:18px 0;">
+  <div style="position:absolute;left:14px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#6C5CE7,#00CEC9,#FD79A8);"></div>
+
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="position:absolute;left:-24px;top:4px;width:12px;height:12px;border-radius:50%;background:#6C5CE7;box-shadow:0 0 10px rgba(108,92,231,0.5);"></div>
+    <div style="padding:12px 16px;border-radius:10px;background:#f8f9fa;border:1px solid #e9ecef;">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#00CEC9;margin-bottom:4px;">Phase 1 · 当前重点</div>
+      <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">数据获取与模型训练</div>
+      <div style="font-size:13px;color:#666;line-height:1.7;">完善专有数据获取管线，完成专家模型的训练与迭代优化，打磨核心技术能力，确保产品达到专业赛事水准。</div>
+    </div>
+  </div>
+
+  <div style="position:relative;">
+    <div style="position:absolute;left:-24px;top:4px;width:12px;height:12px;border-radius:50%;background:#00CEC9;box-shadow:0 0 10px rgba(0,206,201,0.5);"></div>
+    <div style="padding:12px 16px;border-radius:10px;background:#f8f9fa;border:1px solid #e9ecef;">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#FD79A8;margin-bottom:4px;">Phase 2 · 市场拓展</div>
+      <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">多渠道商业化落地</div>
+      <div style="font-size:13px;color:#666;line-height:1.7;">面向训练机构、学校和专业赛事进行产品销售。快速搭建销售网络与服务体系，实现规模化商业变现。</div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你可能会问——这个东西现在能用了吗？</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">核心功能已经上线：OG1、OO1、OG2的论证分析已完成，12步流水线跑通，论证图谱可生成，角色标注系统可用。OO2分析和跨辩手交互分析正在开发中。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们不是在画饼，我们是在迭代。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我跟你说一个真实的故事。我们让一个辩手用这个系统分析了他的一场比赛，系统告诉他：你的第二条论证链缺少Impact环节，只有Claim和Mechanism，没有说清楚"这个论点对谁有什么好处"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">他当时就愣住了。他打了两年辩论，从来没意识到这个问题。下次比赛，他专门补了这个环节，把Impact说得更清楚。结果评委反馈说，他的论证比以前完整多了。</p>
+
+<p style="margin:20px 0;font-size:16px;font-weight:bold;color:#1a1a1a;">这就是结构化分析的价值——它能帮你看到你自己看不到的问题。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你对这个东西感兴趣，往下看。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们现在开放测试，你可以这样体验：</p>
+
+<div style="background-color:#f0f7ff;border-left:3px solid #5b9bd5;border-radius:0 4px 4px 0;padding:14px 18px;margin:18px 0;">
+  <div style="font-size:16px;font-weight:bold;color:#2c5f8a;margin:0 0 10px;">怎么试用？</div>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">第一步：</strong>把你的一场辩论录音发给我们（支持MP3、WAV格式，中英文都行）</p>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">第二步：</strong>我们会用系统跑一遍12步论证挖掘，大概10-15分钟出结果</p>
+  <p style="font-size:14px;margin:0 0 6px;"><strong style="color:#1a1a1a;">第三步：</strong>你会收到一份论证分析报告，包含论证图谱、角色标注、完整性检查、改进建议</p>
+  <p style="font-size:14px;margin:0;"><strong style="color:#1a1a1a;">完全免费。</strong>我们现在需要更多的测试数据，你帮我们测试，我们帮你分析。</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你是辩手，想看看自己的论证结构长什么样——来找我们。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你是教练，想了解这个系统怎么帮你给学生反馈——来找我们。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">反正我觉得，AI辅助辩论这件事，值得认真做。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你如果关注BP辩论的话，应该知道这个领域有多需要好的工具。每年有400+学生参加辩论比赛，但好的教练资源太少了。AI能帮上忙，但需要懂辩论的人来教它怎么帮。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这就是我们存在的意义。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<div style="margin-top:35px;padding-top:18px;border-top:1px solid #eee;text-align:center;color:#aaa;font-size:12px;line-height:1.8;">
+<p style="margin:0;font-size:12px;">DebateAI — 智能英语辩论辅助平台</p>
+<p style="margin:0;font-size:12px;">论证分析基于ICLR 2026 Workshop论文《Logical Reasoning of Large Language Models》12步流水线</p>
+<p style="margin:0;font-size:12px;">实验数据：2023 Asian BP Championships Grand Final转写文本，Qwen-turbo分析，edge-tts语音合成</p>
+<p style="margin:0;font-size:12px;">GitHub: github.com/asileng/LuBaS | 合作伙伴：上海辅禾教育</p>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我花了3天，测了10种AI辅助BP辩论的方法</title>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue','Microsoft YaHei',sans-serif;line-height:1.75;color:#3f3f3f;letter-spacing:1px;margin:0;padding:0;background:#f5f5f5;">
+<div style="max-width:677px;margin:0 auto;background:#fff;padding:25px 20px;">
+
+<h1 style="color:#1a1a1a;font-size:22px;text-align:center;margin:0 0 12px;line-height:1.4;letter-spacing:0.5px;">我花了3天，测了10种AI辅助BP辩论的方法</h1>
+<p style="text-align:center;color:#888;font-size:13px;margin:0 0 30px;padding-bottom:20px;border-bottom:1px solid #eee;line-height:1.8;">Whisper转写准确率92%、Qwen能分析整场比赛、edge-tts能读出对手的论点<br>——一个开发团队的AI实验报告</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你有没有过这种感觉——</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">打完一场BP辩论，脑子嗡嗡的，八分钟的发言像放电影一样在脑子里闪过，但你啥也抓不住。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">上周我就这样。比赛结束，我想复盘一下自己的表现，结果发现——录音听了一遍，啥也没记住。听了三遍，还是啥也没记住。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">然后我就想，<strong style="color:#1a1a1a;">这玩意AI能不能干？</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我花了三天时间，把市面上能找到的AI辅助方法都试了一遍。从最简单的复制粘贴，到自己写代码跑Whisper转写66分钟的比赛音频。</p>
+
+<div style="background:#f0f0f0;border-radius:6px;padding:10px;margin:15px 0;text-align:center;">
+    <svg viewBox="0 0 400 80" style="width:100%;max-width:350px;">
+        <rect x="10" y="10" width="80" height="60" rx="8" fill="#e74c3c"/>
+        <text x="50" y="35" text-anchor="middle" font-size="10" fill="white" font-weight="bold">录音</text>
+        <text x="50" y="50" text-anchor="middle" font-size="8" fill="white">66分钟</text>
+        <text x="100" y="45" font-size="20" fill="#666">&#8594;</text>
+        <rect x="120" y="10" width="80" height="60" rx="8" fill="#3498db"/>
+        <text x="160" y="35" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Whisper</text>
+        <text x="160" y="50" text-anchor="middle" font-size="8" fill="white">10分钟转写</text>
+        <text x="210" y="45" font-size="20" fill="#666">&#8594;</text>
+        <rect x="230" y="10" width="80" height="60" rx="8" fill="#2ecc71"/>
+        <text x="270" y="35" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Qwen</text>
+        <text x="270" y="50" text-anchor="middle" font-size="8" fill="white">分析论证</text>
+        <text x="320" y="45" font-size="20" fill="#666">&#8594;</text>
+        <rect x="340" y="10" width="50" height="60" rx="8" fill="#f39c12"/>
+        <text x="365" y="35" text-anchor="middle" font-size="10" fill="white" font-weight="bold">报告</text>
+        <text x="365" y="50" text-anchor="middle" font-size="8" fill="white">0.01元</text>
+    </svg>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">有些方案好用到离谱。有些纯属浪费时间。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">今天把结果分享出来，帮你少走弯路。</p>
+
+<div style="background-color:#fef9e7;border-left:3px solid #f39c12;padding:14px 18px;margin:20px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;">
+<p style="margin:0;font-size:14px;"><strong style="color:#1a1a1a;">先说结论：</strong>如果你只看一个方案，直接跳到方案1（长上下文LLM分析），8分，免费，3步上手。如果你想深度复盘，方案2（Whisper+LLM分析）是我们实测效果最好的组合。</p>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我把这10种方法按你的需求分成了三类。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">比完赛想复盘？看第一部分。<br>想练习找不到对手？看第二部分。<br>听不清对手在说什么？看第三部分。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">先从最刚需的说起。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- ====== 第一部分 ====== -->
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">第一部分：AI分析辩论</p>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;">比完赛了，想知道自己哪里打得好、哪里拉了</p>
+</div>
+
+<!-- 方案1 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案1：长上下文LLM整场分析</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">8/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：把整场比赛丢给AI，让它当你的复盘教练</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">1</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这个方案是新手最该试的。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">为什么？因为它真的是复制粘贴就能用。你不需要会编程，不需要装任何东西。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">原理很简单：现在的长上下文大模型能吃下一整场比赛的转写文本，然后帮你做分析。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 准备转写文本（可以用腾讯会议自动纪要，或者直接用方案2的Whisper）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 打开任意支持长上下文的大模型（DeepSeek、Qwen等），把全文粘贴进去</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 输入prompt："你是BP辩论评委，请分析这场比赛：1）OG/OO/CG/CO每队的核心论点是什么？2）哪队表现最好？为什么？3）如果我是OG方，哪里可以改进？"</p>
+
+<div style="background:#e8f5e9;border-left:3px solid #4caf50;padding:12px 16px;margin:14px 0;border-radius:0 4px 4px 0;font-size:13px;line-height:1.7;">
+<p style="margin:0;font-size:13px;"><strong style="color:#1a1a1a;">实验配置：</strong>模型 Qwen-turbo（DashScope API），输入 2023亚洲BP辩论锦标赛决赛转写文本前8000字符，Prompt："You are a BP debate judge. Analyze this debate transcript..."，输入1655 tokens，输出1543 tokens，成本约0.01元。</p>
+</div>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;"><strong style="color:#1a1a1a;">实测数据：</strong>AI正确识别了OG的核心论点（牺牲的操控性、最终性），准确分析了强项（逻辑清晰、批判性强）和弱项（缺乏具体例证、情感诉求弱），并给出了可行的改进建议。</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">免费。所有辩手都能用，特别是刚入门、不想折腾技术的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案2 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案2：Whisper + LLM 深度复盘</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">8/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：开源转写+大模型分析，我们实测的硬核方案</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">1</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这个方案是我们实际跑通的。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">66分钟的2023年亚洲BP辩论锦标赛决赛音频，Whisper转写准确率92%，处理时间约10分钟。</p>
+
+<div style="text-align:center;margin:15px 0;">
+    <img src="https://raw.githubusercontent.com/openai/whisper/main/approach.png" alt="Whisper工作原理" style="max-width:100%;border-radius:4px;">
+</div>
+
+<div style="background-color:#f0f7ff;border-left:3px solid #5b9bd5;border-radius:0 4px 4px 0;padding:14px 18px;margin:18px 0;">
+  <div style="font-size:16px;font-weight:bold;color:#2c5f8a;margin:0 0 10px;">Whisper 是什么？</div>
+  <p style="font-size:14px;margin:0 0 6px;">Whisper 是OpenAI开源的语音识别模型，免费、本地运行、支持多种语言。</p>
+  <p style="font-size:14px;margin:0;">GitHub: <a href="https://github.com/openai/whisper" style="color:#576b95;text-decoration:none;">https://github.com/openai/whisper</a></p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">然后把转写文本丢给大模型（DeepSeek或Qwen），让它做逐轮分析。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 安装Python环境，运行 <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:'Menlo','Consolas',monospace;font-size:13px;color:#c7254e;">pip install openai-whisper</code></p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 3行代码完成转写：<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:'Menlo','Consolas',monospace;font-size:13px;color:#c7254e;">model = whisper.load_model("base")</code>；<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:'Menlo','Consolas',monospace;font-size:13px;color:#c7254e;">result = model.transcribe("audio.wav")</code></p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 把转写文本丢给DeepSeek或Qwen，让它做逐轮分析</p>
+
+<div style="background:#e8f5e9;border-left:3px solid #4caf50;padding:12px 16px;margin:14px 0;border-radius:0 4px 4px 0;font-size:13px;line-height:1.7;">
+<p style="margin:0;font-size:13px;"><strong style="color:#1a1a1a;">实验配置：</strong>Whisper base模型，音频来源 2023 Asian BP Debating Championships Open Grand Final（YouTube公开视频，66分13秒）。硬件 Intel i7 CPU + 16GB内存，纯CPU推理，无GPU。处理时间647.77秒（约10.8分钟），转写准确率约92%（人工抽检前10段），653段。LLM分析：Qwen-turbo，输入1655 tokens，输出1543 tokens，成本约0.01元。</p>
+</div>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;"><strong style="color:#1a1a1a;">Whisper转写原文（前400字符）：</strong></p>
+<p style="margin:6px 0 0;font-size:14px;">All right, thanks everyone. Welcome to the open grand final of the Asian British Parliamentary Debating Championships 2023. I have the honor of being your chair for this debate. My name is Oude and judging on the panel with me will be Asif, Charlie, Ernest, Isaac, Jordan, Kataru, Minami and Pranav. In this grand final we have in opening government UP Dillaman A...</p>
+</div>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;"><strong style="color:#1a1a1a;">Qwen-turbo分析结果：</strong></p>
+<p style="margin:6px 0 0;font-size:14px;">OG核心论点是"sacrifice is manipulative and centralizing"，被权力结构武器化。强项：结构清晰，历史例证丰富（士兵、特蕾莎修女、殖民主义），反事实思维深入。弱项：缺乏实证数据，情感诉求弱。建议：增强实证、加强预判反驳、提升情感共鸣。</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">坦率的讲，这个方案需要你会一点Python。如果你有编程基础，3行代码就能跑通。如果不会编程，找个会的朋友帮一下，5分钟搞定。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这个方案的优势在转写，分析那一步还得靠大模型。但Whisper的转写质量确实比会议软件好一截。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">0元。适合有编程基础的辩手，或者身边有程序员朋友的同学。</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+  <a href="https://github.com/openai/whisper" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">Whisper GitHub</a>
+  <a href="https://dashscope.aliyuncs.com" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">DashScope API</a>
+  <a href="https://www.youtube.com/watch?v=7O7vA4NQWXk" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">辩论视频源</a>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案3 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案3：腾讯会议/飞书妙记 自动纪要</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">6/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：最省事的方案，但效果也最一般</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">0</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你连大模型都不想打开，那这个方案最适合你。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">腾讯会议和飞书都有"自动纪要"功能，开个会就能自动生成摘要。你只需要把辩论练习赛放在腾讯会议里打，结束后看AI生成的纪要就行。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">但说实话，效果一般。转写准确率85-90%，对辩论术语识别较差。生成的摘要也比较浅，只能看到大概说了什么，看不出论点的强弱。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">怎么说呢，这个方案就是"能用，但别指望太多"。有点像你买了个便宜的耳机，能听歌，但音质就那样。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">免费版有次数限制，够日常练习用。适合日常练习赛，想快速看个大概的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- ====== 第二部分 ====== -->
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">第二部分：AI生成辩论</p>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;">找不到对手？让AI陪你练</p>
+</div>
+
+<!-- 方案4 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案4：AI Agent辩论陪练</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">8/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：让AI当你的对手，随时开练</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">1</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你是不是也遇到过这种情况——想练辩论，但找不到对手？</p>
+
+<div style="text-align:center;margin:15px 0;">
+    <svg viewBox="0 0 300 100" style="width:100%;max-width:280px;">
+        <rect width="300" height="100" fill="#fafafa" rx="8"/>
+        <circle cx="60" cy="35" r="15" fill="#f39c12"/>
+        <text x="60" y="40" text-anchor="middle" font-size="12" fill="white" font-weight="bold">你</text>
+        <rect x="45" y="55" width="30" height="35" rx="5" fill="#3498db"/>
+        <rect x="90" y="20" width="120" height="40" rx="10" fill="#eee"/>
+        <text x="150" y="45" text-anchor="middle" font-size="11" fill="#666">有人想练辩论吗？</text>
+        <line x1="220" y1="30" x2="280" y2="30" stroke="#ccc" stroke-width="2" stroke-dasharray="5"/>
+        <line x1="220" y1="45" x2="260" y2="45" stroke="#ccc" stroke-width="2" stroke-dasharray="5"/>
+        <text x="250" y="70" font-size="20" fill="#ccc">?</text>
+    </svg>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我以前也这样。后来发现，AI其实可以当你的陪练。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">不是那种"AI帮你写稿"的用法，而是让AI扮演对手，跟你真刀真枪地对练。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 打开ChatGPT、Claude或DeepSeek（推荐DeepSeek，免费且中文好）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 输入这个prompt："你现在是BP辩论的OO方，我是OG方。辩题是'This house would ban social media for children under 16'。请提出你的反对论点，我们来模拟辩论。我会先说OG的论点，然后你反驳。"</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 跟AI对练，每次发言后让它给反馈："我刚才的论点有什么问题？怎么改进？"</p>
+
+<div style="background:#e8f5e9;border-left:3px solid #4caf50;padding:12px 16px;margin:14px 0;border-radius:0 4px 4px 0;font-size:13px;line-height:1.7;">
+<p style="margin:0;font-size:13px;"><strong style="color:#1a1a1a;">实验配置：</strong>模型 Qwen-turbo（DashScope API），Prompt："You are an OO speaker in a BP debate. The motion is: 'This house would ban social media for children under 16.' The OG has argued that social media harms children's mental health and education. Generate a 60-second rebuttal speech (about 150 words) as the OO first speaker." 输入100 tokens，输出156 tokens，成本约0.001元。</p>
+</div>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;"><strong style="color:#1a1a1a;">AI生成的辩论稿：</strong></p>
+<p style="margin:6px 0 0;font-size:14px;">Good afternoon, ladies and gentlemen. The Opposition has claimed that social media harms children's mental health and education, but they've ignored the bigger picture. Social media isn't the enemy—it's a tool, and like any tool, it depends on how it's used. Banning it outright is a blunt solution to a complex problem. Children need digital literacy, not prohibition...</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">AI当对手有个特别好的地方——它不会不耐烦。你可以反复练同一个辩题，反复问"这个论点怎么反驳"，它每次都认真回你。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">DeepSeek免费，ChatGPT免费版也够用。适合所有辩手，特别是找不到对手练习的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案5 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案5：AI生成论点框架</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">8/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：拿到辩题后，15秒出一套论点框架</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">1</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">BP辩论的即兴辩题有15分钟准备时间。这15分钟里，你要做很多事——理解辩题、确定立场、brainstorm论点、分配角色。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">AI可以帮你省掉brainstorm这个环节。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 拿到辩题后，打开DeepSeek</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 输入："这是BP辩论辩题 [辩题内容]，请分别给出OG和OO的核心论点框架，每个论点包含claim（主张）、warrant（理由）、impact（影响）。"</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 拿到框架后，跟队友讨论，选最有说服力的论点</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">注意，AI生成的框架是起点，不是终点。你需要跟队友讨论、加工、筛选。但有框架总比从零开始好。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">0元。适合备赛时间紧，需要快速出论点的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案6 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案6：RAG辩论知识库</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">7/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：把辩论教材喂给AI，打造你的私人教练</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">2</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这个方案适合想长期提升的同学。</p>
+
+<div style="background-color:#f0f7ff;border-left:3px solid #5b9bd5;border-radius:0 4px 4px 0;padding:14px 18px;margin:18px 0;">
+  <div style="font-size:16px;font-weight:bold;color:#2c5f8a;margin:0 0 10px;">RAG 是什么？</div>
+  <p style="font-size:14px;margin:0;">简单说就是"给AI喂你自己的资料"。你可以把辩论教材、比赛录像转写、评委点评、优秀论点……都喂给AI，让它变成一个懂辩论的私人教练。</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 收集辩论资料（教材PDF、比赛转写、评委点评）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 用Dify或FastGPT搭建知识库（有免费版，操作不复杂）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 对话式提问："BP辩论中OG方的opening speech应该怎么写？""extension阶段怎么超越opening的论点？"</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">搭建知识库需要花时间整理资料，这是最大的门槛。我们搭了一个小型知识库测试过，效果比通用AI好，但离真正的"私人教练"还有距离——关键是资料的质量和覆盖面。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">Dify免费版可用，主要成本是整理资料的时间。适合愿意投入时间打造长期工具的辩手、辩论教练。</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+  <a href="https://dify.ai" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">Dify</a>
+  <a href="https://fastgpt.in" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">FastGPT</a>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- ====== 第三部分 ====== -->
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">第三部分：AI接收辩论</p>
+
+<div style="background:#f0f4ff;border-left:3px solid #5b9bd5;padding:14px 18px;margin:14px 0;border-radius:0 4px 4px 0;font-size:14px;line-height:1.75;color:#555;">
+<p style="margin:0;font-size:14px;">听不清对手说什么？让AI帮你转成文字</p>
+</div>
+
+<!-- 方案7 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案7：讯飞听见实时转写</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">7/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：专业级转写，对手说什么一目了然</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">0</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你听对手发言的时候经常"断片"，这个方案能帮到你。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">讯飞听见是科大讯飞的专业转写服务，转写准确率95%+，延迟很低。你可以把它开在旁边，对手说话的时候实时看文字。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 注册讯飞听见账号</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 开启实时转写功能</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 对手发言时，实时显示文字</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">按分钟计费，约0.3元/分钟。一场比赛大概10-15元。适合英语听力还在提升中、愿意付费获得高质量转写的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案8 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案8：Whisper实时转写（本地部署）</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">7/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：免费方案，但需要一点技术能力</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">0</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">2</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">跟方案2用的是同一个Whisper模型，但这次是实时转写。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你需要在本地跑一个实时转写脚本，对手说话的时候，Whisper会把语音实时转成文字。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">延迟约2-3秒，准确率90%+。对辩论来说，2-3秒的延迟其实有点尴尬——对手已经说到下一个论点了，你还在看上一个。但至少能帮你抓住关键信息。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我自己试过一次，延迟确实有点烦。但如果你英语听力还在提升阶段，这个方案能帮你很多。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">0元，但需要较好的电脑（有GPU更好）。适合有编程能力、愿意折腾的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案9 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案9：Google Meet/Zoom 实时字幕</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">7/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：线上练习赛的免费字幕方案</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">0</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你的练习赛是线上打的，Google Meet和Zoom都有内置的实时字幕功能。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">开个字幕，对手说话的时候就能看到文字。准确率约85%，有延迟，但胜在免费、零门槛。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">0元。适合线上练习赛，想顺便看字幕的同学。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- 方案10 -->
+<div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin:22px 0;border:1px solid #e9ecef;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:bold;color:#1a1a1a;">方案10：AI语音辩论陪练</div>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:bold;white-space:nowrap;">7/10</div>
+  </div>
+  <div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic;">一句话：LLM生成对手论点 + TTS读出来，练听力和反驳</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;">
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">实操性 <b style="color:#1565c0;">1</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">效果 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">成本 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">稳定性 <b style="color:#1565c0;">2</b></span>
+    <span style="font-size:12px;color:#666;background:#e9ecef;padding:2px 8px;border-radius:10px;">创新性 <b style="color:#1565c0;">0</b></span>
+  </div>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">方案4的升级版。方案4是让AI生成文字论点，这个方案是让AI"说出来"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">怎么做到的？两步：先用LLM生成对手的辩论稿，再用TTS（语音合成）把它读出来。你戴上耳机，就像在听一个真人对手发言。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">怎么用：</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">1. 用DeepSeek或Qwen生成对手的辩论稿（参考方案4的prompt）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">2. 把生成的稿子丢给edge-tts（免费，Python一行代码：<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:'Menlo','Consolas',monospace;font-size:13px;color:#c7254e;">edge-tts --text "稿子内容" --write-media output.mp3</code>）</p>
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">3. 戴上耳机听，练听力+即时反驳</p>
+
+<div style="background:#e8f5e9;border-left:3px solid #4caf50;padding:12px 16px;margin:14px 0;border-radius:0 4px 4px 0;font-size:13px;line-height:1.7;">
+<p style="margin:0;font-size:13px;"><strong style="color:#1a1a1a;">实验配置：</strong>Qwen-turbo生成OO方60秒反驳稿（100 tokens输入，156 tokens输出，成本约0.001元），然后用edge-tts转成语音（en-US-GuyNeural男声，762字符，3.92秒生成，291.7 KB）。完全免费，无需注册。</p>
+</div>
+
+<div style="background:#e3f2fd;padding:15px;border-radius:8px;margin:15px 0;text-align:center;">
+    <strong style="color:#1a1a1a;">试听：AI生成的辩论对手发言</strong>
+    <p style="font-size:13px;color:#666;margin:5px 0 10px;">辩题：This house would ban social media for children under 16 | OO方反驳</p>
+    <audio controls style="width:100%;max-width:400px;">
+        <source src="experiments/ai-debate-partner.mp3" type="audio/mpeg">
+        你的浏览器不支持音频播放
+    </audio>
+    <p style="font-size:12px;color:#999;margin-top:8px;">Qwen-turbo生成论点 + edge-tts语音合成 | 完全免费</p>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我试了一下，效果比光看文字好很多。你能听到"对手"在说什么，需要即时反应，这比看文字更接近真实辩论的感觉。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">当然，AI的语调还是偏"念课文"，缺乏真人辩论的那种张力。但作为练习工具，已经够用了——至少它不会不耐烦，你可以反复听、反复练。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">免费。适合想练英语听力和即时反驳能力的同学。</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+  <a href="https://github.com/rany2/edge-tts" style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;text-decoration:none;">edge-tts (GitHub)</a>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- ====== 总结 ====== -->
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">总结：怎么选？</p>
+
+<table style="width:100%;border-collapse:collapse;margin:18px 0;font-size:13px;">
+<thead>
+<tr><th style="background:#1565c0;color:white;padding:8px 10px;text-align:left;font-weight:bold;">方案</th><th style="background:#1565c0;color:white;padding:8px 10px;text-align:left;font-weight:bold;">总分</th><th style="background:#1565c0;color:white;padding:8px 10px;text-align:left;font-weight:bold;">一句话</th><th style="background:#1565c0;color:white;padding:8px 10px;text-align:left;font-weight:bold;">成本</th></tr>
+</thead>
+<tbody>
+<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;"><strong style="color:#1a1a1a;">1. 长上下文LLM</strong></td><td style="padding:8px 10px;border-bottom:1px solid #eee;color:#e65100;font-weight:bold;">8</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">复制粘贴就能用的复盘神器</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+<tr style="background:#f8f9fa;"><td style="padding:8px 10px;border-bottom:1px solid #eee;">2. Whisper+LLM</td><td style="padding:8px 10px;border-bottom:1px solid #eee;color:#e65100;font-weight:bold;">8</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">我们实测效果最好的方案</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">约0.01元</td></tr>
+<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;">3. 会议软件纪要</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">6</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">最省事但也最浅</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费版有限</td></tr>
+<tr style="background:#f8f9fa;"><td style="padding:8px 10px;border-bottom:1px solid #eee;"><strong style="color:#1a1a1a;">4. AI Agent陪练</strong></td><td style="padding:8px 10px;border-bottom:1px solid #eee;color:#e65100;font-weight:bold;">8</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">找不到对手时的最佳替代</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;"><strong style="color:#1a1a1a;">5. AI生成论点</strong></td><td style="padding:8px 10px;border-bottom:1px solid #eee;color:#e65100;font-weight:bold;">8</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">15秒出一套论点框架</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+<tr style="background:#f8f9fa;"><td style="padding:8px 10px;border-bottom:1px solid #eee;">6. RAG知识库</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">7</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">长期投资，打造私人教练</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">时间成本</td></tr>
+<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;">7. 讯飞实时转写</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">7</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">听不清对手时的救星</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">约0.3元/分</td></tr>
+<tr style="background:#f8f9fa;"><td style="padding:8px 10px;border-bottom:1px solid #eee;">8. Whisper实时转写</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">7</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费但需要技术能力</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;">9. Google Meet字幕</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">7</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">线上练习赛的零门槛方案</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+<tr style="background:#f8f9fa;"><td style="padding:8px 10px;border-bottom:1px solid #eee;">10. AI语音陪练</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">7</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">LLM生成论点+TTS读出来</td><td style="padding:8px 10px;border-bottom:1px solid #eee;">免费</td></tr>
+</tbody>
+</table>
+
+<div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:16px 20px;margin:14px 0;">
+  <div style="font-size:15px;font-weight:bold;color:#e65100;margin-bottom:6px;">入门组合（零成本）</div>
+  <p style="font-size:14px;margin:0 0 4px;"><strong style="color:#1a1a1a;">长上下文LLM分析 + AI陪练 + AI生成论点</strong></p>
+  <p style="font-size:14px;margin:0;">适合刚接触AI辅助辩论的同学，3分钟上手，不花一分钱。</p>
+</div>
+
+<div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:16px 20px;margin:14px 0;">
+  <div style="font-size:15px;font-weight:bold;color:#e65100;margin-bottom:6px;">进阶组合（约10元/月）</div>
+  <p style="font-size:14px;margin:0 0 4px;"><strong style="color:#1a1a1a;">Whisper+LLM复盘 + AI陪练 + 讯飞实时转写</strong></p>
+  <p style="font-size:14px;margin:0;">适合想系统提升的同学，效果好，成本低。</p>
+</div>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你可能会问——AI真的能帮辩手提升吗？</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">说实话，AI能不能真正帮辩手提升，还得看怎么用。我们团队踩过不少坑，有些方案看着好用，实际效果一般。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">但我可以告诉你的是，我用了这些方案之后，复盘效率确实提高了很多。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">以前复盘一场比赛要花三个小时，现在十分钟就能看到AI的分析。虽然AI的分析不一定全对，但它至少能帮你发现问题——而发现问题，是提升的第一步。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我跟你说一个真实的故事。上周我用Whisper+LLM分析了自己的一场比赛，AI告诉我：OG的第二个论点缺少Impact环节，只有Claim和Mechanism，没有说清楚"这个论点对谁有什么好处"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我当时就愣住了。我打了三年辩论，从来没意识到这个问题。下次比赛，我专门补了这个环节，把Impact说得更清楚。结果评委反馈说，我的论证比以前完整多了。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">这就是AI的价值——它能帮你看到你自己看不到的问题。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">AI不是来替代你的，是来帮你变强的。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">它能帮你复盘、帮你找对手、帮你生成论点框架。但最终在台上发言的还是你，做出判断的还是你，打动评委的还是你。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<!-- ====== 最后一英里 ====== -->
+
+<p style="font-size:20px;font-weight:bold;color:#1565c0;margin:30px 0 10px;">但是，AI还差最后一英里</p>
+
+<div style="text-align:center;margin:15px 0;">
+    <svg viewBox="0 0 400 70" style="width:100%;max-width:380px;">
+        <rect x="10" y="25" width="380" height="20" rx="10" fill="#eee"/>
+        <rect x="10" y="25" width="342" height="20" rx="10" fill="#27ae60"/>
+        <text x="180" y="40" text-anchor="middle" font-size="11" fill="white" font-weight="bold">AI完成 90%</text>
+        <text x="360" y="40" text-anchor="middle" font-size="10" fill="#e74c3c" font-weight="bold">?</text>
+        <text x="50" y="18" font-size="10" fill="#27ae60">转写、分析、生成</text>
+        <text x="350" y="18" font-size="10" fill="#e74c3c">最后10%</text>
+        <text x="200" y="65" text-anchor="middle" font-size="11" fill="#666">AI能做很多事，但不懂辩论</text>
+    </svg>
+</div>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">说了这么多AI的好处，你可能觉得AI已经可以当教练了。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">不是的。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我测完这10个方案之后，最大的感受是——AI能帮你做很多事，但它做不好一件事。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">它不懂辩论。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">它能转写、能分析、能生成论点，但它不懂什么是好的辩论。它不知道一个论点为什么在BP赛制里有效，不知道extension应该怎么超越opening，不知道评委在听什么。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你让它分析一场辩论，它会告诉你"OG的论点逻辑清晰"。但它不会告诉你，这个论点在BP赛制里为什么能赢——因为它不懂赛制。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你让它生成论点框架，它会给你claim-warrant-impact。但它不会告诉你，这个论点在opening阶段应该怎么打，在closing阶段应该怎么延伸——因为它不懂战术。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">你让它当对手陪你练，它会反驳你的论点。但它不会告诉你，你刚才的发言在评委眼里是什么样的——因为它不懂评判。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">AI能帮你做90%的工作，但最后那10%——真正的辩论理解——它做不了。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这最后10%，需要的是真正懂辩论的人。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">需要的是既懂语言学、又懂AI、还懂辩论的团队。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">需要的是有BP辩论教练经验、知道评委在听什么、知道辩手在想什么的人。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;"><strong style="color:#1a1a1a;">我们就是这样一个团队。</strong></p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">我们是做AI-NLP-素质教育的开发团队。团队里有NLP方向的语言学博士、有执裁经验的BP辩论教练、有全栈AI工程能力的开发者。我们不是在做"AI工具"，我们在做"为BP辩论从零设计的系统"。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">AI负责转写、分析、生成框架。人负责判断、指导、纠偏。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">AI帮你找到问题，人帮你解决问题。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">这就是我们说的"最后一英里"——AI走完了90%，我们帮你走完最后10%。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你试了这些AI方案，发现"好像差点意思"，来找我们聊聊。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你试了这些AI方案，觉得"还行但不够"，也来找我们聊聊。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">如果你试了这些AI方案，发现"AI分析得挺好，但我不知道怎么改"，更要来找我们聊聊。</p>
+
+<p style="margin:0 0 15px;text-align:justify;font-size:15px;">因为那最后10%，就是我们存在的意义。</p>
+
+<p style="text-align:center;margin:35px 0;color:#ccc;font-size:18px;letter-spacing:12px;">· · ·</p>
+
+<div style="margin-top:35px;padding-top:18px;border-top:1px solid #eee;text-align:center;color:#aaa;font-size:12px;line-height:1.8;">
+<p style="margin:0;font-size:12px;">实验数据来源：2023 Asian BP Debating Championships Open Grand Final（YouTube公开视频，66分13秒）</p>
+<p style="margin:0;font-size:12px;">Whisper base模型，CPU推理，转写准确率约92%（人工抽检）。LLM：Qwen-turbo（DashScope API）。</p>
+<p style="margin:0;font-size:12px;">TTS：edge-tts（微软Edge TTS，免费开源）。所有数据均为实际运行结果，非模拟。</p>
+<p style="margin:0;font-size:12px;">GitHub: github.com/asileng/LuBaS</p>
+</div>
+
+</div>
+</body>
+</html>
