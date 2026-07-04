@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debate Judge Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="header">
+        <div class="header-left">
+            <span class="logo">&#9878;</span>
+            <h1>Debate Judge Assistant</h1>
+        </div>
+        <div class="header-right">
+            <button id="btn-reset" class="btn btn-secondary" title="Start a new debate">
+                &#8635; New Debate
+            </button>
+            <div class="dropdown">
+                <button id="btn-export" class="btn btn-secondary">
+                    &#8681; Export &#9662;
+                </button>
+                <div id="export-menu" class="dropdown-menu hidden">
+                    <a href="#" id="export-txt">Plain Text (.txt)</a>
+                    <a href="#" id="export-md">Markdown (.md)</a>
+                    <a href="#" id="export-json">JSON (.json)</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Audio Input Selector Bar -->
+    <div id="audio-device-bar">
+        <label for="audio-device-select">&#127908; Audio Input:</label>
+        <select id="audio-device-select">
+            <option value="">Loading devices...</option>
+        </select>
+        <button id="btn-refresh-devices" class="btn btn-device-refresh" title="Refresh device list">&#8635;</button>
+        <span id="device-status" class="device-status"></span>
+    </div>
+
+    <!-- Audio Visualizer -->
+    <div id="audio-visualizer">
+        <canvas id="waveform-canvas"></canvas>
+        <div id="volume-meter">
+            <div id="volume-level-track">
+                <div id="volume-level-fill" class="volume-level-fill"></div>
+            </div>
+            <span id="volume-db">-- dB</span>
+        </div>
+        <div id="visualizer-hint">Speak to check audio input</div>
+    </div>
+
+    <main>
+        <!-- Current Segment Panel -->
+        <section id="current-segment">
+            <div class="segment-info">
+                <span id="segment-counter">SPEECH 1 of 8</span>
+                <h2 id="segment-title">1st Speaker Affirmative — Constructive</h2>
+                <span id="segment-side" class="side-badge affirmative">Affirmative</span>
+            </div>
+
+            <div id="timer-container">
+                <div id="timer" class="timer-green">06:00</div>
+                <div id="poi-zone-indicator" class="poi-zone">
+                    <span id="poi-zone-text">POI: Protected (first minute)</span>
+                    <div class="poi-bar">
+                        <div class="poi-bar-protected" style="width:16.7%"></div>
+                        <div class="poi-bar-active" style="width:66.6%"></div>
+                        <div class="poi-bar-protected" style="width:16.7%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="controls">
+                <button id="btn-record" class="btn btn-record" title="Start recording">
+                    &#9679; Record
+                </button>
+                <button id="btn-pause" class="btn btn-pause hidden" title="Pause/Resume">
+                    &#9208; Pause
+                </button>
+                <button id="btn-stop" class="btn btn-stop hidden" title="Stop recording">
+                    &#9209; Stop
+                </button>
+                <button id="btn-skip" class="btn btn-skip" title="Skip to next segment">
+                    &#9197; Skip
+                </button>
+                <button id="btn-poi" class="btn btn-poi hidden" title="Mark a POI" disabled>
+                    &#9873; POI
+                </button>
+            </div>
+        </section>
+
+        <!-- Segment Timeline -->
+        <section id="segment-timeline">
+            <div id="timeline-cards"></div>
+        </section>
+
+        <!-- Transcript Panel -->
+        <section id="transcript-panel">
+            <div class="transcript-header">
+                <h3>Transcript</h3>
+                <span id="transcript-segment-label"></span>
+            </div>
+            <div id="transcript-content">
+                <p class="placeholder">Press Record to start the first speech.</p>
+            </div>
+            <div id="transcribing-spinner" class="hidden">
+                <div class="spinner"></div>
+                <span>Transcribing with Whisper...</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Log Panel -->
+    <div id="log-panel" class="log-collapsed">
+        <div id="log-header" onclick="App.toggleLogPanel()">
+            <span id="log-title">&#9881; Whisper Log</span>
+            <span id="log-badge" class="hidden">0</span>
+            <span id="log-toggle">&#9650;</span>
+        </div>
+        <div id="log-body">
+            <div id="log-entries"></div>
+            <div id="log-footer">
+                <button onclick="App.clearLogView()" class="btn-log-clear">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio element for alerts -->
+    <audio id="alert-audio" preload="auto"></audio>
+
+    <!-- Scripts (load order matters) -->
+    <script src="/static/js/config.js"></script>
+    <script src="/static/js/state.js"></script>
+    <script src="/static/js/timer.js"></script>
+    <script src="/static/js/recorder.js"></script>
+    <script src="/static/js/visualizer.js"></script>
+    <script src="/static/js/poi.js"></script>
+    <script src="/static/js/transcript.js"></script>
+    <script src="/static/js/export.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
